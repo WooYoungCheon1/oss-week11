@@ -10,7 +10,7 @@
 // 커밋 메시지: p1: vitest / p2: tests
 
 import { test, expect } from "vitest";
-import { toDays } from "./public/logic.js";
+import { toDays, isGoodDay, summarize, reasons } from "./public/logic.js";
 
 // 주어짐: Open-Meteo 응답의 daily 와 같은 모양으로 손으로 만든 입력.
 // 기준 30 %, 10 km/h 에서 네 가지 경우가 하루씩 들어가게 고른 값입니다(P2 의 표).
@@ -29,3 +29,33 @@ test("toDays builds one object per day", () => {
 });
 
 // P2: 여기 아래에 테스트를 추가합니다. 위의 import 줄에 필요한 함수 이름도 추가합니다.
+test("1. A normal good day", () => {
+  expect(isGoodDay(days[0], limits)).toBe(true);
+});
+test("2. Boundary condition right with 'less than or equal to'?", () => {
+  expect(isGoodDay(days[1], limits)).toBe(true);
+});
+test("3. Fail if only wind exceed?", () => {
+  expect(isGoodDay(days[2], limits)).toBe(false);
+});
+test("4. Fail if only rain exceed?", () => {
+  expect(isGoodDay(days[3], limits)).toBe(false);
+});
+test("5. Is it correct numbers of isGoodDay and total days?", () => {
+  expect(summarize(days, limits)).toBe("good for a run on 2 of 4 days");
+});
+test("6. Empty input. check if print message without error", () => {
+  expect(summarize([], limits)).toBe("good for a run on 0 of 0 days");
+});
+test("7. Reasons are two. Rain first comes", () => {
+  const tmp = { time: ["11-25"],
+    temperature_2m_max: [0],
+    precipitation_probability_max: [90],
+    wind_speed_10m_max: [20], 
+  };
+  const tmp_d = toDays(tmp);
+  expect(reasons(tmp_d[0], limits)).toEqual(["rain", "wind"]);
+});
+test("8. Boundary. There is not exist reason for same standard", () => {
+  expect(reasons(days[1], limits)).toEqual([]);
+});
