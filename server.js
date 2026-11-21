@@ -15,6 +15,11 @@ import express from "express";
 import { toDays } from "./public/logic.js";
 import { getDaily } from "./openMeteo.js";
 
+if(!process.env.ADMIN_TOKEN){
+    console.error("ADMIN_TOKEN is not set. Copy .env.example to .env.");
+    process.exit(1);
+}
+
 const app = express();
 const port = process.env.PORT ?? 3000;
 
@@ -23,6 +28,7 @@ const CITIES = {
   daejeon: { name: "Daejeon", lat: 36.3504, lon: 127.3845 },
   gangneung: { name: "Gangneung", lat: 37.7519, lon: 128.8761 },
 };
+const counts = {};
 
 app.use(express.static("public"));
 
@@ -35,12 +41,20 @@ app.get("/api/forecast", async(req, res) =>{
     if(!Object.hasOwn(CITIES, req.query.city)){
         return res.status(400).json({error: `Unknown city: ${req.query.city}`});
     }
+    counts[req.query.city] = (counts[req.query.city] ?? 0) + 1;
     try{
         const days = toDays(await getDaily(city));
         res.status(200).json({city: city.name, days});
     } catch(err){
         res.status(502).json({error: err.message});
     }
+});
+
+app.get("/api/stats", (req, res) =>{
+    if(req.get("Authorization") !== `Bearer ${process.env.ADMIN_TOKEN}`){
+        return res.status(401).json({error: "Unauthorized"});
+    }
+    res.status(200).json(counts);
 });
 
 app.listen(port, (error) =>{
